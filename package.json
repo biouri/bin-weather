@@ -2,8 +2,11 @@
   "name": "bin-weather",
   "version": "1.0.0",
   "description": "CLI for getting weather",
-  "main": "index.js",
-  "bin": "./index.js",
+  "main": "weather.js",
+  "bin": {
+    "weather": "weather.js"
+  },
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -23,8 +26,13 @@
     "email": "bin-weather@gmail.com"
   },
   "private": "false",
-  "man": ["./README.md"],
+  "man": [
+    "./README.md"
+  ],
   "engines": {
     "node": ">14"
+  },
+  "dependencies": {
+    "axios": "^1.8.4"
   }
 }
