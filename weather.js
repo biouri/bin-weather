@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { getArgs } from './helpers/args.js';
+import { printHelp } from './services/log-service.js';
 
 // Функция, которую будем вызывать в рамках запуска CLI
 const initCLI = () => {
@@ -10,6 +11,7 @@ const initCLI = () => {
 	console.log(args);
 	if (args.h) {
 		// Вывод help
+		printHelp();
 	}
 	if (args.s) {
 		// Сохранить город
