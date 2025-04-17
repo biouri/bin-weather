@@ -14,34 +14,53 @@ import { homedir } from 'os';
 import { join, basename, dirname, extname, 
          relative, isAbsolute, resolve, sep } from 'path';
 
+// Чтение/Запись файлов (в данном случае используем promises)
+// writeFileSync - синхронно записать данные в файл (используется редко)
+// writeFile - асинхронная запись данных в файл
+// promises - современный метод для получения информации об ОС, читать, записывать.
+import { promises } from 'fs';
+
 // join() использует особенности ОС при конкатенации
 // join() умеет корректно обрабатывать переходы в каталоги '../weather-data.json'
 const filePath = join(homedir(), 'weather-data.json');
 
 // Универсальный метод сохранения "ключ: значение"
-const saveKeyValue = (key, value) => {
-    // Для разных ОС homedir() и др. будут отличаться
-    // Пример для Windows: 
-    // filePath: C:\Users\belok\weather-data.json
-    // homedir(): C:\Users\belok
-    // basename(): weather-data.json
-    // dirname(): C:\Users\belok
-    // extname(): .json
-    // relative(): ..
-    // isAbsolute(): true
-    // resolve(): D:\Projects\node_abc
-    // sep: \
-    console.log(`filePath: ${filePath}`);
-    console.log(`homedir(): ${homedir()}`);
-    console.log(`basename(): ${basename(filePath)}`);
-    console.log(`dirname(): ${dirname(filePath)}`);
-    console.log(`extname(): ${extname(filePath)}`);
-    console.log(`relative(): ${relative(filePath, dirname(filePath))}`);
-    console.log(`isAbsolute(): ${isAbsolute(filePath)}`);
-    console.log(`resolve(): ${resolve('..')}`);
-    console.log(`sep: ${sep}`);
-
+// В этом методе нет обработки ошибок
+const saveKeyValue = async (key, value) => {
     // Код для сохранения данных ...
+    let data = {};
+    // Проверить наличие файла и загрузить все данные (включая другие ключи)
+	if (await isExist(filePath)) {
+		const file = await promises.readFile(filePath);
+		data = JSON.parse(file);
+	}
+    // Добавить или модифицировать ключ
+	data[key] = value;
+    // Преобразование JavaScript объекта в строку JSON и сохранение
+    // Если файл отсутствует, он будет создан
+	await promises.writeFile(filePath, JSON.stringify(data));
 };
 
-export { saveKeyValue };
+const getKeyValue = async (key) => {
+	if (await isExist(filePath)) {
+		const file = await promises.readFile(filePath);
+		const data = JSON.parse(file);
+		return data[key];
+	}
+    // Если нет данных, возвращаем undefined
+	return undefined;
+};
+
+// Проверка наличия файла
+const isExist = async (path) => {
+	try {
+        // stat(путь) возвращает статистику по файлу
+        // если файла нет, то статистика отсутствует и возникает исключение
+		await promises.stat(path);
+		return true;
+	} catch (e) {
+		return false;
+	}
+};
+
+export { saveKeyValue, getKeyValue };

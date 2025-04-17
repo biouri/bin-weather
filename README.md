@@ -23,6 +23,7 @@ git push -u origin main
 git commit -m "Configure package.json + Parsing command line arguments: args.js"
 git commit -m "Add Log Service + Console Output + chalk + dedent-js"
 git commit -m "Add OS + path + Example storage-service.js"
+git commit -m "Add File system operations with async promises from fs"
 ```
 
 ## Приложение BIN-Weather
@@ -501,4 +502,152 @@ const saveKeyValue = (key, value) => {
 };
 
 export { saveKeyValue };
+```
+
+## Работа с файловой системой
+
+Разработка функции `saveKeyValue` для сохранения параметров (например, токен или город) с использованием файловой системы.
+
+### Используемые инструменты
+
+Модуль `fs` в Node.js для работы с файловой системой.
+
+### Методы сохранения
+
+1. `writeFileSync`: Блокирующий (синхронный) метод.
+2. `writeFile`: Асинхронный метод на основе колбэков.
+3. Предпочтительный метод: Использование `fs.promises` для работы с промисами, избегая `"callback hell"`.
+
+### Реализация функции
+
+- Создание базового объекта для хранения пар ключ-значение.
+- Преобразование JavaScript объекта в строку JSON для сохранения файла с помощью `JSON.stringify`.
+- Использование асинхронного метода `fs.promises.writeFile` для записи файла.
+- Проверка существования файла перед записью, чтение и обновление содержимого если файл существует.
+
+### Дополнительные функции
+
+1. `exist`: Проверка наличия файла.
+2. `getKey`: Извлечение значения по ключу из сохранённого файла.
+
+### Обработка ошибок
+
+1. Простая обработка ошибок с акцентом на верхнеуровневые обработчики.
+2. Избежание включения логики вывода в консоль в сервис работы с файловой системой для разделения ответственности.
+
+### Вспомогательные функции
+
+Создание отдельных функций для сохранения токена и других параметров с обработкой ошибок и информированием пользователя о результате с помощью `printSuccess` и `printError`.
+
+`services\storage-service.js`
+
+```javascript
+// Стандартная библиотека OS может использоваться для получения домашнего каталога
+import { homedir } from "os";
+import {
+  join,
+  basename,
+  dirname,
+  extname,
+  relative,
+  isAbsolute,
+  resolve,
+  sep,
+} from "path";
+
+// Чтение/Запись файлов (в данном случае используем promises)
+// writeFileSync - синхронно записать данные в файл (используется редко)
+// writeFile - асинхронная запись данных в файл
+// promises - современный метод для получения информации об ОС, читать, записывать.
+import { promises } from "fs";
+
+// join() использует особенности ОС при конкатенации
+const filePath = join(homedir(), "weather-data.json");
+
+// Универсальный метод сохранения "ключ: значение"
+// В этом методе нет обработки ошибок
+const saveKeyValue = async (key, value) => {
+  // Код для сохранения данных ...
+  let data = {};
+  // Проверить наличие файла и загрузить все данные (включая другие ключи)
+  if (await isExist(filePath)) {
+    const file = await promises.readFile(filePath);
+    data = JSON.parse(file);
+  }
+  // Добавить или модифицировать ключ
+  data[key] = value;
+  // Преобразование JavaScript объекта в строку JSON и сохранение
+  // Если файл отсутствует, он будет создан
+  await promises.writeFile(filePath, JSON.stringify(data));
+};
+
+const getKeyValue = async (key) => {
+  if (await isExist(filePath)) {
+    const file = await promises.readFile(filePath);
+    const data = JSON.parse(file);
+    return data[key];
+  }
+  // Если нет данных, возвращаем undefined
+  return undefined;
+};
+
+// Проверка наличия файла
+const isExist = async (path) => {
+  try {
+    // stat(путь) возвращает статистику по файлу
+    // если файла нет, то статистика отсутствует и возникает исключение
+    await promises.stat(path);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+export { saveKeyValue, getKeyValue };
+```
+
+`bin-weather\weather.js`
+
+```javascript
+#!/usr/bin/env node
+import { getArgs } from "./helpers/args.js";
+import { printHelp, printSuccess, printError } from "./services/log-service.js";
+import { saveKeyValue } from "./services/storage-service.js";
+
+// Обработка ошибок try-catch на уровне изолированной функции сохранения
+const saveToken = async (token) => {
+  try {
+    await saveKeyValue("token", token);
+    printSuccess("Токен сохранён");
+  } catch (e) {
+    printError(e.message);
+  }
+};
+
+// Функция, которую будем вызывать в рамках запуска CLI
+// Можно условно сказать, что в данной функции выполняется роутинг
+// Для каждого роута (условия) есть своя изолированная функция-обработчик
+const initCLI = () => {
+  // process - глобальная переменная с информацией о процессе
+  // process. просмотр доступных методов и переменных
+  console.log(process.argv);
+  const args = getArgs(process.argv);
+  console.log(args);
+  if (args.h) {
+    // Вывод help
+    printHelp();
+  }
+  if (args.s) {
+    // Сохранить город
+  }
+  if (args.t) {
+    // Сохранить токен
+    // Вызов отдельной изолированной функции (с обработкой ошибок)
+    return saveToken(args.t);
+  }
+  // Вывести погоду
+  console.log("Weather APP");
+};
+
+initCLI();
 ```
