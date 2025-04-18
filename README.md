@@ -26,6 +26,7 @@ git commit -m "Add OS + path + Example storage-service.js"
 git commit -m "Add File system operations with async promises from fs"
 git commit -m "Add API Service Example api-service.js"
 git commit -m "Add Environment Variables process.env"
+git commit -m "Add Error Handling in getForcast"
 ```
 
 ## Приложение BIN-Weather
@@ -871,4 +872,70 @@ const token = process.env.TOKEN ?? (await getKeyValue(TOKEN_DICTIONARY.token));
 
 ```shell
 set "TOKEN=04350c0ABCDa4cd3456da7124aeABC28" && node weather.js
+```
+
+## Обработка ошибок
+
+1. Типы ошибок:
+
+- Ошибка 401: Неправильно указан токен.
+- Ошибка 404: Неправильно указан город.
+
+2. Проверка ошибок:
+   Можно запустить запрос с неверным городом или без токена для получения ошибки 404 или 401 соответственно.
+
+3. Создание метода `getForecast`:
+
+- `getForecast` является частью `getWeather`.
+- Позволяет вызывать погоду для заданного города.
+- Требует добавления `async` для работы с асинхронными запросами.
+
+4. Обработка ошибок:
+
+- Использование `catch` для перехвата ошибок.
+- Проверка типа ошибки через статус код.
+- Вывод сообщения в зависимости от типа ошибки.
+- 404: Неверно указан город.
+- 401: Неверно указан токен.
+- Прочие ошибки: Вывод стандартного сообщения об ошибке.
+
+```javascript
+const getForcast = async () => {
+  try {
+    // Город читаем из переменной окружения CITY
+    const weather = await getWeather(process.env.CITY);
+    console.log(weather); // Красивый вывод погоды (необходимо реализовать)
+  } catch (e) {
+    // Ошибка Axios может содержать status код
+    if (e?.response?.status == 404) {
+      printError("Неверно указан город");
+    } else if (e?.response?.status == 401) {
+      printError("Неверно указан токен");
+    } else {
+      // Любая другая ошибка
+      printError(e.message);
+    }
+  }
+};
+
+const initCLI = () => {
+...
+	// Обратиться к API для получения информации о погоде по городу
+	getForcast();
+}
+
+initCLI();
+```
+
+Задать дополнительно переменную CITY
+
+```shell
+set "TOKEN=04350c0b914a4cd01967da724ae05828" && set "CITY=London" && node weather.js
+```
+
+Возможны ошибки:
+
+```Bash
+ ERROR  Неверно указан токен
+ ERROR  Неверно указан город
 ```
