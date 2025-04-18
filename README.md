@@ -24,6 +24,7 @@ git commit -m "Configure package.json + Parsing command line arguments: args.js"
 git commit -m "Add Log Service + Console Output + chalk + dedent-js"
 git commit -m "Add OS + path + Example storage-service.js"
 git commit -m "Add File system operations with async promises from fs"
+git commit -m "Add API Service Example api-service.js"
 ```
 
 ## Приложение BIN-Weather
@@ -650,4 +651,165 @@ const initCLI = () => {
 };
 
 initCLI();
+```
+
+## Взаимодействие с API
+
+1. Получение API-ключа на сайте: `openweathermap.org`.
+   Зарегистрируйтесь и подтвердите электронную почту.
+   Получите ключ API в личном кабинете.
+
+2. Лимиты и тарифы:
+   60 запросов в минуту, 1 млн в месяц бесплатно.
+
+3. Варианты использования API:
+   Текущая погода, прогноз на 4 и 30 дней, массовые скачивания.
+
+4. Создание запроса:
+   Основные параметры: `Q` (город), `AppID` (ключ API), `Mode` (формат ответа, предпочтительно JSON), `Units` (единицы измерения, метрическая система), `Language` (язык ответа).
+
+```javascript
+// Пример URL для запроса в API
+const url = await axios.get(
+  `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${key}`
+);
+```
+
+5. Разработка сервиса для запросов:
+   Создание функции `getWeather` для получения погоды по городу.
+   Реализация через стандартную библиотеку HTTPS и использование Axios для упрощения запросов.
+
+```javascript
+import https from "https";
+import { getKeyValue, TOKEN_DICTIONARY } from "./storage-service.js";
+
+// Классический способ выполнения запроса при помощи https используется редко
+const getWeatherHTTPS = async (city) => {
+  // Хорошо бы обернуть весь код ниже в Promise и использовать resolve/reject
+  // Но это все не очень удобно и сложно
+  // return new Promise(...);
+
+  // Ниже код, который желательно оборачивать в Promise
+  const token = await getKeyValue(TOKEN_DICTIONARY.token);
+  if (!token) {
+    throw new Error(
+      "Не задан ключ API, задайте его через команду -t [API_KEY]"
+    );
+  }
+
+  // Формирование URL с добавлением параметров
+  const url = new URL("https://api.openweathermap.org/data/2.5/weather");
+  url.searchParams.append("q", city);
+  url.searchParams.append("appid", token);
+  url.searchParams.append("lang", "ru");
+  url.searchParams.append("units", "metric");
+
+  // Запрос и получение результата response
+  https.get(url, (response) => {
+    let res = "";
+    // Подписаться на получение данных
+    // Обычно кусочек получаемых данных называют chunk
+    response.on("data", (chunk) => {
+      res += chunk;
+    });
+
+    // Подписка на завершение
+    // Вывести результат
+    response.on("end", () => {
+      console.log(`Ответ строка: ${res}`);
+      // Парсим строку в объект
+      // JSON.parse(jsonString) — превращает строку в объект.
+      // JSON.stringify(..., null, 2) — превращает объект обратно в строку, но с отступами в 2 пробела.
+      console.log(`JSON: ${JSON.stringify(JSON.parse(res), null, 2)}`);
+    });
+
+    // Аналогично можно подписаться на ошибки, на паузу, на закрытие канала
+    response.on("error", (error) => {
+      // Обработка ошибки
+      console.log(`Error: ${error}`);
+      return;
+    });
+  });
+};
+
+export { getWeatherHTTPS };
+```
+
+6. Ошибки и проверки:
+   Добавление проверки на наличие токена.
+   Обработка ошибок запроса и отсутствия ключа API.
+
+7. Рефакторинг и улучшения:
+   Переход на более простой и безопасный способ построения URL.
+   Использование `Axios` для более удобной работы с HTTP-запросами.
+
+```javascript
+import axios from "axios";
+
+const getWeather = async (city) => {
+  const token = await getKeyValue(TOKEN_DICTIONARY.token);
+  if (!token) {
+    throw new Error(
+      "Не задан ключ API, задайте его через команду -t [API_KEY]"
+    );
+  }
+  // В Axios удобный способ конструирования запроса с дополнительной опцией params
+  // В ответе содержатся данные data и др. информация: headers, response ...
+  const { data } = await axios.get(
+    "https://api.openweathermap.org/data/2.5/weather",
+    {
+      params: {
+        q: city,
+        appid: token,
+        lang: "ru",
+        units: "metric",
+      },
+    }
+  );
+  return data;
+};
+
+export { getWeather };
+```
+
+8. Практическое использование сервиса:
+   Пример запроса погоды для города (Москва).
+   Анализ полученных данных и обработка результатов.
+
+`bin-weather\weather.js`
+
+```javascript
+import { saveKeyValue, TOKEN_DICTIONARY } from "./services/storage-service.js";
+import { getWeather, getWeatherHTTPS } from "./services/api-service.js";
+
+// Обработка ошибок try-catch на уровне изолированной функции сохранения
+const saveToken = async (token) => {
+  if (!token.length) {
+    printError("Не передан token");
+    return;
+  }
+  try {
+    await saveKeyValue(TOKEN_DICTIONARY.token, token);
+    printSuccess("Токен сохранён");
+  } catch (e) {
+    printError(e.message);
+  }
+};
+
+// Если используется асинхронная функция getWeather возвращающая данные
+const printWeather = async (city) => {
+  const data = await getWeather(city);
+  console.log(data);
+};
+
+// Вывести погоду
+console.log("Weather:");
+// Обратиться к API для получения информации о погоде по городу
+getWeatherHTTPS("Moscow");
+// printWeather('London');
+```
+
+```bash
+node weather.js -t 0123456789abcd...
+node weather.js
 ```

@@ -24,6 +24,11 @@ import { promises } from 'fs';
 // join() умеет корректно обрабатывать переходы в каталоги '../weather-data.json'
 const filePath = join(homedir(), 'weather-data.json');
 
+const TOKEN_DICTIONARY = {
+	token: 'token',
+	city: 'city'
+}
+
 // Универсальный метод сохранения "ключ: значение"
 // В этом методе нет обработки ошибок
 const saveKeyValue = async (key, value) => {
@@ -63,4 +68,4 @@ const isExist = async (path) => {
 	}
 };
 
-export { saveKeyValue, getKeyValue };
+export { saveKeyValue, getKeyValue, TOKEN_DICTIONARY };
