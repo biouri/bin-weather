@@ -3,7 +3,8 @@ import axios from 'axios';
 import { getKeyValue, TOKEN_DICTIONARY } from './storage-service.js';
 
 const getWeather = async (city) => {
-	const token = await getKeyValue(TOKEN_DICTIONARY.token);
+	// Если задана переменная окружения TOKEN, иначе из файла-настроек
+	const token = process.env.TOKEN ?? await getKeyValue(TOKEN_DICTIONARY.token);
 	if (!token) {
 		throw new Error('Не задан ключ API, задайте его через команду -t [API_KEY]');
 	}
@@ -27,7 +28,8 @@ const getWeatherHTTPS = async (city) => {
 	// return new Promise(...);
 
 	// Ниже код, который желательно оборачивать в Promise
-	const token = await getKeyValue(TOKEN_DICTIONARY.token);
+	// Если задана переменная окружения TOKEN, иначе из файла-настроек
+	const token = process.env.TOKEN ?? await getKeyValue(TOKEN_DICTIONARY.token);
 	if (!token) {
 		throw new Error('Не задан ключ API, задайте его через команду -t [API_KEY]');
 	}

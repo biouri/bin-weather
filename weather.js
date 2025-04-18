@@ -29,6 +29,8 @@ const printWeather = async (city)  => {
 const initCLI = () => {
 	// process - глобальная переменная с информацией о процессе
 	// process. просмотр доступных методов и переменных
+	console.log(process.env);
+	console.log(`-----------`);
 	console.log(process.argv);
 	const args = getArgs(process.argv)
 	console.log(args);
