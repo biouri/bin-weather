@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { getArgs } from './helpers/args.js';
-import { printHelp, printSuccess, printError } from './services/log-service.js';
+import { printHelp, printSuccess, printError, printWeather } from './services/log-service.js';
 import { saveKeyValue, getKeyValue, TOKEN_DICTIONARY } from './services/storage-service.js'
-import { getWeather, getWeatherHTTPS } from './services/api-service.js'
+import { getWeather, getIcon } from './services/api-service.js'
 
 // Обработка ошибок try-catch на уровне изолированной функции сохранения
 const saveToken = async (token) => {
@@ -18,16 +18,27 @@ const saveToken = async (token) => {
 	}
 }
 
-const printWeather = async (city)  => {
-	const data = await getWeather(city);
-	console.log(data);
-};
+const saveCity = async (city) => {
+	if (!city.length) {
+		printError('Не передан город');
+		return;
+	}
+	try {
+		await saveKeyValue(TOKEN_DICTIONARY.city, city);
+		printSuccess('Город сохранён');
+	} catch (e) {
+		printError(e.message);
+	}
+}
 
 const getForcast = async () => {
 	try {
 		// Город читаем из переменной окружения CITY
-		const weather = await getWeather(process.env.CITY);
-		console.log(weather); // Красивый вывод погоды (необходимо реализовать)
+		// Если задана переменная окружения CITY, иначе из файла-настроек
+		const city = process.env.CITY ?? await getKeyValue(TOKEN_DICTIONARY.city);
+		const weather = await getWeather(city);
+		// Красивый вывод погоды
+		printWeather(weather, getIcon(weather.weather[0].icon));
 	} catch (e) {
 		// Ошибка Axios может содержать status код
 		if (e?.response?.status == 404) {
@@ -47,17 +58,20 @@ const getForcast = async () => {
 const initCLI = () => {
 	// process - глобальная переменная с информацией о процессе
 	// process. просмотр доступных методов и переменных
+	// console.log(`--- process.env ---`);
 	// console.log(process.env);
-	// console.log(`-----------`);
-	console.log(process.argv);
-	const args = getArgs(process.argv)
-	console.log(args);
+	// console.log(`--- process.argv ---`);
+	// console.log(process.argv);
+	const args = getArgs(process.argv);
+	// console.log(args);
 	if (args.h) {
 		// Вывод help
-		printHelp();
+		return printHelp();
 	}
 	if (args.s) {
 		// Сохранить город
+		// Вызов отдельной изолированной функции (с обработкой ошибок)
+		return saveCity(args.s);
 	}
 	if (args.t) {
 		// Сохранить токен
@@ -65,9 +79,8 @@ const initCLI = () => {
 		return saveToken(args.t);
 	}
 	// Вывести погоду
-	console.log("Weather:");
 	// Обратиться к API для получения информации о погоде по городу
-	getForcast();
+	return getForcast();
 };
 
 initCLI();

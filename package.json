@@ -8,6 +8,7 @@
   },
   "type": "module",
   "scripts": {
+    "start": "node weather.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -19,13 +20,13 @@
   "homepage": "https://www.bin-weather.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/biouri/bin-weather"
+    "url": "git+https://github.com/biouri/bin-weather.git"
   },
   "bugs": {
     "url": "https://bin-weather.com",
     "email": "bin-weather@gmail.com"
   },
-  "private": "false",
+  "private": false,
   "man": [
     "./README.md"
   ],

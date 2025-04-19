@@ -47,11 +47,14 @@ const saveKeyValue = async (key, value) => {
 };
 
 const getKeyValue = async (key) => {
+    console.log(`Запрос данных по ключу: ${key}`);
 	if (await isExist(filePath)) {
 		const file = await promises.readFile(filePath);
 		const data = JSON.parse(file);
+        console.log(`Данные по ключу [${key}]: ${data[key]}`);
 		return data[key];
 	}
+    console.log(`Данные по ключу [${key}]: ОТСУТСТУЮТ`);
     // Если нет данных, возвращаем undefined
 	return undefined;
 };
